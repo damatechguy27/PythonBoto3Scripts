@@ -1,5 +1,6 @@
 import boto3
 from pprint import pprint
+from datetime import date
 from csv import DictWriter
 import os
 
@@ -12,7 +13,7 @@ vm_env = ""
 vm_owner = ""
 
 
-file_name = "ec2-dict.csv"
+file_name = "ec2-dict-" + str(date.today()) + ".csv"
 
 
 

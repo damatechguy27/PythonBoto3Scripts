@@ -1,5 +1,6 @@
 import boto3
 from pprint import pprint
+from datetime import date
 from csv import DictWriter
 import os
 ec2_cli = boto3.client('ec2', region_name="us-west-2")
@@ -14,7 +15,7 @@ vm_env = ""
 vm_owner = ""
 
 resultsdict = {}
-file_name = "ec2-dict.csv"
+file_name = "ec2-dict-" + str(date.today()) + ".csv"
 header_added = False
 header = ['Instance_ID', 'Instance_Type', 'Status','Name','Environment','Owner']
 

@@ -1,5 +1,6 @@
 import boto3
 from pprint import pprint
+from datetime import date
 import pandas as pd
 import os
 
@@ -11,7 +12,7 @@ vm_env = ""
 vm_owner = ""
 resultsdict = {}
 
-file_name = "ec2-test.csv"
+file_name = "ec2-dict-" + str(date.today()) + ".csv"
 
 def filecheck(file):
     #Checks to make sure a current report does not exist 
