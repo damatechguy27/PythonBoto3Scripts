@@ -89,7 +89,7 @@ def addcsv_naming_conv(csvname):
 
         # Add values to the "conventions" column in existing rows
         for row in data:
-            row['Conventions'] = 'LLL-NNN-FFF-EE-SS'
+            row['Conventions'] = 'AAA-BBBBB-CCC-DD-EE'
 
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         csv_file.seek(0)  # Move the cursor to the beginning of the file
@@ -130,7 +130,7 @@ def namingconv_audit_check(csvname, csvauditfile):
     import csv
 
     # Define your naming conventions
-    allowedlocations = ['AVA', 'AOH']
+    allowedlocations = ['NBA', 'NFL']
     name_length = 20
     allowedfuncs = ['DOC', 'MAR', 'VCR', 'DVD']
     allowedenv = ['DC', 'VA', 'CA', 'FL']
