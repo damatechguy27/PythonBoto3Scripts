@@ -1,6 +1,13 @@
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.resource import SubscriptionClient
+
+
+def auth_to_azure():
+    creds = DefaultAzureCredential()
+
+    return creds
     
     # Function to compare values while ignoring delimiters
 def compare_without_delimiters(name, hostname):
@@ -39,21 +46,11 @@ def matches_naming_conventions(name):
     return "False"
 
 
-def get_name_hostname_tags_all_resource_groups():
-    # Your Azure subscription ID
-    subscription_id = 'SUB_ID'
-    
-    # Authenticate using the service principal
-    credentials = DefaultAzureCredential()
+def get_name_hostname_tags_all_resource_groups(creds):
+    credentials = creds
+    subscription_client = SubscriptionClient(credentials)
 
-    # Create the ResourceManagementClient to get a list of resource groups
-    resource_client = ResourceManagementClient(credentials, subscription_id)
-
-    # Get a list of all resource groups in the subscription
-    resource_groups = resource_client.resource_groups.list()
-
-    # Create the ComputeManagementClient to work with virtual machines
-    compute_client = ComputeManagementClient(credentials, subscription_id)
+    subs = subscription_client.subscriptions.list()
 
     vm_name = ''
     vm_hostname = ''
@@ -61,38 +58,49 @@ def get_name_hostname_tags_all_resource_groups():
     resultsdict = {}
     global results
     results_list = []
-    # Iterate over each resource group and get VMs
-    for resource_group in resource_groups:
-        resource_group_name = resource_group.name
-        #print(f"Resource Group: {resource_group_name}")
 
-        # Get all VMs in the resource group
-        vms = compute_client.virtual_machines.list(resource_group_name)
+    for sub in subs:
 
-        # Iterate over each VM and retrieve name and hostname tags
-        for vm in vms:
-            #vm_name = vm.name
-            tags = vm.tags
-            if tags and 'Name' in tags and 'Hostname' in tags:
-                #name_tag = tags['Name']
-                vm_name = tags['Name']
-                
-                #hostname_tag = tags['Hostname']
-                vm_hostname = tags['Hostname']
-                
-                #print(f"  VM '{vm_name}' - Name: {name_tag}, Hostname: {hostname_tag}")
+        # Create ResourceManagementClient to get resource groups
+        resource_client = ResourceManagementClient(credentials, sub.subscription_id)
+        # Get all resource groups
+        resource_groups = resource_client.resource_groups.list()
 
-                resultsdict = {
-                    'VM Name': vm.name,
-                    'Name': vm_name,
-                    'Hostname': vm_hostname,
-                    'Tag_Check' : str(compare_without_delimiters(vm_name,vm_hostname)),
-                    'NC_Audit' : matches_naming_conventions(vm_name)
-                }
-                #return resultsdict
-                results_list.append(resultsdict)
+        # Create ComputeManagementClient to get VMs
+        compute_client = ComputeManagementClient(credentials, sub.subscription_id)
 
-    return results_list
+        # Iterate over each resource group and get VMs
+        for resource_group in resource_groups:
+            resource_group_name = resource_group.name
+            #print(f"Resource Group: {resource_group_name}")
+
+            # Get all VMs in the resource group
+            vms = compute_client.virtual_machines.list(resource_group_name)
+
+            # Iterate over each VM and retrieve name and hostname tags
+            for vm in vms:
+                #vm_name = vm.name
+                tags = vm.tags
+                if tags and 'Name' in tags and 'Hostname' in tags:
+                    #name_tag = tags['Name']
+                    vm_name = tags['Name']
+                    
+                    #hostname_tag = tags['Hostname']
+                    vm_hostname = tags['Hostname']
+                    
+                    #print(f"  VM '{vm_name}' - Name: {name_tag}, Hostname: {hostname_tag}")
+
+                    resultsdict = {
+                        'VM Name': vm.name,
+                        'Name': vm_name,
+                        'Hostname': vm_hostname,
+                        'Tag_Check' : str(compare_without_delimiters(vm_name,vm_hostname)),
+                        'NC_Audit' : matches_naming_conventions(vm_name)
+                    }
+                    #return resultsdict
+                    results_list.append(resultsdict)
+
+        return results_list
 
 
 
@@ -111,8 +119,10 @@ def print_csv(csv_name, data):
 if __name__ == "__main__":
 
     from datetime import date
-    
-    results_data = get_name_hostname_tags_all_resource_groups()
+
+    creds = auth_to_azure()
+
+    results_data = get_name_hostname_tags_all_resource_groups(creds)
 
     filename = "azurevm" + str(date.today()) + ".csv"
     print_csv(filename, results_data)
