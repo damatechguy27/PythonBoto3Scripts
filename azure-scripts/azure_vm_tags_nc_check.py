@@ -46,7 +46,19 @@ def matches_naming_conventions(name):
     return "False"
 
 
-def get_name_hostname_tags_all_resource_groups(creds):
+def print_csv(csv_name, data):
+    from csv import DictWriter
+    import os
+    header = ['VM Name', 'Name', 'Hostname', 'Tag_Check', 'NC_Audit']
+    with open(csv_name, 'w', newline='') as csvfile:
+        writer = DictWriter(csvfile, fieldnames=header)
+        #                if not os.path.exists(file_path) or os.path.getsize(file_path) ==0:
+        writer.writeheader()
+        writer.writerows(data)
+
+
+
+def get_name_hostname_tags_all_resource_groups(creds, csvname):
     credentials = creds
     subscription_client = SubscriptionClient(credentials)
 
@@ -100,19 +112,11 @@ def get_name_hostname_tags_all_resource_groups(creds):
                     #return resultsdict
                     results_list.append(resultsdict)
 
-        return results_list
+    print_csv(csvname,results_list)
+ #       return results_list
 
 
 
-def print_csv(csv_name, data):
-    from csv import DictWriter
-    import os
-    header = ['VM Name', 'Name', 'Hostname', 'Tag_Check', 'NC_Audit']
-    with open(csv_name, 'w', newline='') as csvfile:
-        writer = DictWriter(csvfile, fieldnames=header)
-        #                if not os.path.exists(file_path) or os.path.getsize(file_path) ==0:
-        writer.writeheader()
-        writer.writerows(data)
 
 
 
@@ -122,7 +126,9 @@ if __name__ == "__main__":
 
     creds = auth_to_azure()
 
-    results_data = get_name_hostname_tags_all_resource_groups(creds)
+    #results_data = get_name_hostname_tags_all_resource_groups(creds)
 
-    filename = "azurevm" + str(date.today()) + ".csv"
-    print_csv(filename, results_data)
+    filename = "azurevm_nc_check" + str(date.today()) + ".csv"
+    
+    results_data = get_name_hostname_tags_all_resource_groups(creds, filename)    
+#    print_csv(filename, results_data)
