@@ -1,45 +1,57 @@
 import boto3
+from configparser import ConfigParser
+from datetime import datetime, timedelta, date
 import csv
-from datetime import datetime, timedelta, timezone
 
-def list_old_snapshots(region='us-east-1', retention_days=90):
-    # Create an EC2 client
-    ec2_client = boto3.client('ec2', region_name=region)
+# Read AWS credentials file
+config = ConfigParser()
+config.read('C:\\Users\\dmit27\\.aws\\credentials')  # Update with the correct path if needed
 
-    # Calculate the date 3 months ago
-    retention_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
+# Get the list of profile names
+profiles = config.sections()
 
-    # List all snapshots
-    response = ec2_client.describe_snapshots(OwnerIds=['self'])
+# Calculate the date 90 days ago
+ninety_days_ago = datetime.now() - timedelta(days=90)
 
-    # Filter snapshots older than retention_date
-    old_snapshots = [snapshot for snapshot in response['Snapshots'] if snapshot['StartTime'] < retention_date]
+# Create an empty list to store snapshot information
+snapshot_info_list = []
 
-    return old_snapshots
+# Iterate through each profile
+for profile in profiles:
+    print(f"Processing profile: {profile}")
 
-def export_to_csv(snapshots, output_file='old_AWS_snapshots.csv'):
-    fieldnames = ['Snapshot Name', 'Snapshot ID', 'Size (GB)', 'Start Time', 'Encrypted']
+    # Use the boto3 library with the current profile
+    session = boto3.Session(profile_name=profile)
+    ec2_client = session.client('ec2')
 
-    with open(output_file, 'w', newline='') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-        writer.writeheader()
+    # Example: List all EC2 snapshots
+    response = ec2_client.describe_snapshots(OwnerIds=['self']) #ec2_client.describe_snapshots()
+    snapshots = response['Snapshots']
 
-        for snapshot in snapshots:
-            writer.writerow({
-                'Snapshot Name': snapshot.get('Tags', [{}])[0].get('Value', 'N/A'),
+    for snapshot in snapshots:
+        start_time = snapshot['StartTime']
+        # Convert the start time to a datetime object
+        start_time_dt = start_time.replace(tzinfo=None)
+
+        # Check if the snapshot is older than 90 days
+        if start_time_dt < ninety_days_ago:
+            snapshot_info = {
+                'Profile': profile,
                 'Snapshot ID': snapshot['SnapshotId'],
+                'Volume ID': snapshot['VolumeId'],
                 'Size (GB)': snapshot['VolumeSize'],
-                'Start Time': snapshot['StartTime'],
-                'Encrypted': snapshot['Encrypted']
-            })
+                'Start Time': start_time,
+                'Encrypted': snapshot.get('Encrypted', 'N/A')
+            }
+            snapshot_info_list.append(snapshot_info)
 
-if __name__ == "__main__":
-    # Replace 'your-region' with the AWS region you want to check
-    region_to_check = 'us-west-2'
+# Write the list of dictionaries to a CSV file
+csv_file_path = "ec2-snapshot-info" + str(date.today()) + ".csv"
+fieldnames = ['Profile', 'Snapshot ID', 'Volume ID','Size (GB)', 'Start Time', 'Encrypted']
 
-    # Replace '90' with the desired retention period in days
-    retention_days_to_check = 90
+with open(csv_file_path, 'w', newline='') as csv_file:
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(snapshot_info_list)
 
-    old_snapshots = list_old_snapshots(region=region_to_check, retention_days=retention_days_to_check)
-    export_to_csv(old_snapshots)
-    print(f"Snapshot details exported to 'old_snapshots.csv'")
+print(f"Results exported to {csv_file_path}")
