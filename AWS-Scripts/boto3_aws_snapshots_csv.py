@@ -5,7 +5,7 @@ import csv
 
 # Read AWS credentials file
 config = ConfigParser()
-config.read('C:\\Users\\dmit27\\.aws\\credentials')  # Update with the correct path if needed
+config.read('path to .aws.credentials')  # Update with the correct path if needed
 
 # Get the list of profile names
 profiles = config.sections()
