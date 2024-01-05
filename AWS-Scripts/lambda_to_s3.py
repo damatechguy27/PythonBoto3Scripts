@@ -1,7 +1,7 @@
 import boto3
 import json
+import os
 import time
-from datetime import datetime, timedelta
 
 s3 = boto3.client('s3')
 logs = boto3.client('logs')
@@ -31,22 +31,27 @@ def get_all_log_groups():
     return log_groups
 
 def get_last_export_timestamp(log_group_name):
-    parameter_name = f'/log-export-checkpoints/{log_group_name}'
+    ssm_parameter_name = ("/log-exporter-last-export/%s" % log_group_name).replace("//", "/")
+
     try:
-        response = ssm.get_parameter(Name=parameter_name)
-        timestamp_str = response['Parameter']['Value']
-        return int(timestamp_str)
+        ssm_response = ssm.get_parameter(Name=ssm_parameter_name)
+        return int(ssm_response['Parameter']['Value'])
     except ssm.exceptions.ParameterNotFound:
         return 0
 
 def set_last_export_timestamp(log_group_name, timestamp):
-    parameter_name = f'/log-export-checkpoints/{log_group_name}'
-    timestamp_str = str(timestamp)
-    ssm.put_parameter(Name=parameter_name, Value=timestamp_str, Type='String', Overwrite=True)
+    ssm_parameter_name = ("/log-exporter-last-export/%s" % log_group_name).replace("//", "/")
+
+    ssm.put_parameter(
+        Name=ssm_parameter_name,
+        Value=str(timestamp),
+        Type='String',
+        Overwrite=True
+    )
 
 def lambda_handler(event, context):
-    # Get current timestamp
-    current_timestamp = int(time.time())
+    # Get the S3 bucket name from environment variable
+    s3_bucket_name = os.environ['S3_BUCKET']
 
     # Get all log groups
     log_groups = get_all_log_groups()
@@ -57,13 +62,21 @@ def lambda_handler(event, context):
         if should_exclude(log_group_name):
             continue  # Skip excluded log groups
 
-        # Get last export timestamp from SSM
+        # Get the last export timestamp from SSM Parameter Store
         last_export_timestamp = get_last_export_timestamp(log_group_name)
 
-        # Check if 24 hours have passed since the last export
-        if current_timestamp - last_export_timestamp < 24 * 3600:
-            print(f"Skipping export for log group '{log_group_name}' as 24 hours have not passed.")
+        # Get the current timestamp
+        current_timestamp = int(round(time.time() * 1000))
+
+        print(f"--> Exporting {log_group_name} to {s3_bucket_name}")
+
+        if current_timestamp - last_export_timestamp < (24 * 60 * 60 * 1000):
+            # Skip export if less than 24 hours since the last export
+            print("    Skipped until 24hrs from last export is completed")
             continue
+
+        # Set the last export timestamp to the current time
+        set_last_export_timestamp(log_group_name, current_timestamp)
 
         # Set S3 prefix based on log group name
         s3_prefix = f'{log_group_name}/'
@@ -71,17 +84,14 @@ def lambda_handler(event, context):
         # Create export task
         response = logs.create_export_task(
             logGroupName=log_group_name,
-            fromTime=last_export_timestamp * 1000,  # Convert to milliseconds
-            to=current_timestamp * 1000,  # Convert to milliseconds
-            destination='your-s3-bucket-name',
+            fromTime=0,
+            to=9999999999999,
+            destination=s3_bucket_name,
             destinationPrefix=s3_prefix
         )
 
         export_task_id = response['taskId']
         print(f"Export task created for log group '{log_group_name}'. Task ID: {export_task_id}")
-
-        # Update last export timestamp in SSM
-        set_last_export_timestamp(log_group_name, current_timestamp)
 
     return {
         'statusCode': 200,
