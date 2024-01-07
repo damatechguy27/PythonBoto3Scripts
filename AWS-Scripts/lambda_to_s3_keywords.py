@@ -7,10 +7,11 @@ s3 = boto3.client('s3')
 logs = boto3.client('logs')
 ssm = boto3.client('ssm')
 
-keyword = 'vpc'  # Specify the keyword to filter log groups
+keywords = ['test3']  # Specify the list of keywords to filter log groups
 
-def contains_keyword(log_group_name):
-    return keyword.lower() in log_group_name.lower()
+def contains_keywords(log_group_name):
+    return any(keyword.lower() in log_group_name.lower() for keyword in keywords)
+
 
 def get_all_log_groups():
     log_groups = []
@@ -62,12 +63,12 @@ def lambda_handler(event, context):
     for log_group in log_groups:
         log_group_name = log_group['logGroupName']
 
-        if not contains_keyword(log_group_name):
+        if not contains_keywords(log_group_name):
             continue  # Skip log groups that don't contain the specified keyword
 
         filtered_log_groups.append(log_group_name)
 
-    print(f"Log groups containing '{keyword}': {filtered_log_groups}")
+    print(f"Log groups containing '{keywords}': {filtered_log_groups}")
 
     for log_group_name in filtered_log_groups:
         # Get the last export timestamp from SSM Parameter Store
