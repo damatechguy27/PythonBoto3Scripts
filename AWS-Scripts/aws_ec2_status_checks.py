@@ -51,7 +51,7 @@ def write_to_csv(csvname, data):
 def main():
     # Read AWS credentials file
     config = ConfigParser()
-    config.read('C:\\Users\\dmit27\\.aws\\credentials')  # Update with the correct path if needed
+    config.read('Put path to .aws\\credentials file here')  # Update with the correct path if needed
 
     new_dir = create_reports_dir()
     file_name = "ec2-health-check-report" + str(date.today()) + ".csv"
