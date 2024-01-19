@@ -38,7 +38,7 @@ def filecheck(file):
 def main():
     # Read AWS credentials file
     config = ConfigParser()
-    config.read('C:\\Users\\dmit27\\.aws\\credentials')  # Update with the correct path if needed
+    config.read('put path to .aws\\credentials file here')  # Update with the correct path if needed
 
     new_dir = create_reports_dir()
     file_name = "ec2-AllTags-report" + str(date.today()) + ".csv"
