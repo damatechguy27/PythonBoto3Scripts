@@ -30,7 +30,8 @@ def main():
 
     # Read AWS credentials file
     config = ConfigParser()
-    #config.read('C:\\Users\\dmit27\\.aws\\credentials')  # Update with the correct path if needed
+
+    # Update with the correct path if needed
     config.read('<path to your .aws/credentials file>')
     # grabs the results 
     # Get the list of profile names
