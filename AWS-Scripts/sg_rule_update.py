@@ -65,6 +65,7 @@ def main():
                 csv_reader = csv.DictReader(file)
                 for row in csv_reader:
                     # Extract rule information from CSV
+                    # Make sure your csv contains the following information
                     ip_protocol = row['Protocol']
                     from_port = int(row['From Port'])
                     to_port = int(row['To Port'])
